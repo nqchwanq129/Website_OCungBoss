@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Button } from '../../components/Button';
+import { Select } from '../../components/Select';
+import { LoadingState } from '../../components/LoadingState';
 import {
   ALL_UI_CAPABILITIES,
   FIXTURE_ACTORS,
@@ -146,6 +149,12 @@ export function FixturePlayground() {
     requiredCapability: requiredCap,
   });
 
+  useEffect(() => {
+    if (resolvedRead.status !== 'loading') return;
+    const timeout = window.setTimeout(() => setReadMode('normal'), resolvedRead.simulatedDelayMs);
+    return () => window.clearTimeout(timeout);
+  }, [resolvedRead.simulatedDelayMs, resolvedRead.status]);
+
   const selectedUploadPreset = UPLOAD_PRESETS.find((item) => item.id === uploadPresetId) ?? UPLOAD_PRESETS[0];
 
   const filteredCases =
@@ -218,74 +227,66 @@ export function FixturePlayground() {
       <section className="shell-card" aria-labelledby="control-panel-heading">
         <div className="section-header-row">
           <h2 id="control-panel-heading">1. Chọn vai trò (Actor), mục tiêu truy cập &amp; chế độ dữ liệu đọc (S)</h2>
-          <button type="button" className="btn-secondary" onClick={handleResetFixture}>
+          <Button variant="secondary" onClick={handleResetFixture}>
             Khôi phục fixture gốc
-          </button>
+          </Button>
         </div>
 
         <div className="control-grid">
-          <div className="field-group">
-            <label htmlFor="actor-select">Vai trò / Phiên thử nghiệm (Actor)</label>
-            <select
-              id="actor-select"
-              value={actorId}
-              onChange={(e) => {
-                setActorId(e.target.value as FixtureActorId);
-                setActivePetOverride(undefined);
-              }}
-            >
-              {ACTOR_IDS.map((id) => (
-                <option key={id} value={id}>
-                  {FIXTURE_ACTORS[id].label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="actor-select"
+            label="Vai trò / Phiên thử nghiệm (Actor)"
+            value={actorId}
+            onChange={(e) => {
+              setActorId(e.target.value as FixtureActorId);
+              setActivePetOverride(undefined);
+            }}
+          >
+            {ACTOR_IDS.map((id) => (
+              <option key={id} value={id}>
+                {FIXTURE_ACTORS[id].label}
+              </option>
+            ))}
+          </Select>
 
-          <div className="field-group">
-            <label htmlFor="target-select">Thực thể / Khu vực đích</label>
-            <select
-              id="target-select"
-              value={targetKind}
-              onChange={(e) => setTargetKind(e.target.value as FixtureTargetKind)}
-            >
-              {TARGET_OPTIONS.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="target-select"
+            label="Thực thể / Khu vực đích"
+            value={targetKind}
+            onChange={(e) => setTargetKind(e.target.value as FixtureTargetKind)}
+          >
+            {TARGET_OPTIONS.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
 
-          <div className="field-group">
-            <label htmlFor="read-mode-select">Kịch bản dữ liệu đọc (State S)</label>
-            <select
-              id="read-mode-select"
-              value={readMode}
-              onChange={(e) => setReadMode(e.target.value as ReadScenarioMode)}
-            >
-              {READ_MODES.map((mode) => (
-                <option key={mode} value={mode}>
-                  {FIXTURE_DATASET_PRESETS[mode].label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="read-mode-select"
+            label="Kịch bản dữ liệu đọc (State S)"
+            value={readMode}
+            onChange={(e) => setReadMode(e.target.value as ReadScenarioMode)}
+          >
+            {READ_MODES.map((mode) => (
+              <option key={mode} value={mode}>
+                {FIXTURE_DATASET_PRESETS[mode].label}
+              </option>
+            ))}
+          </Select>
 
-          <div className="field-group">
-            <label htmlFor="capability-select">Capability kiểm tra (khi đích là /admin/*)</label>
-            <select
-              id="capability-select"
-              value={requiredCap}
-              onChange={(e) => setRequiredCap(e.target.value as UiCapability)}
-            >
-              {ALL_UI_CAPABILITIES.map((cap) => (
-                <option key={cap} value={cap}>
-                  {cap}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="capability-select"
+            label="Capability kiểm tra (khi đích là /admin/*)"
+            value={requiredCap}
+            onChange={(e) => setRequiredCap(e.target.value as UiCapability)}
+          >
+            {ALL_UI_CAPABILITIES.map((cap) => (
+              <option key={cap} value={cap}>
+                {cap}
+              </option>
+            ))}
+          </Select>
         </div>
 
         <div className="actor-meta-strip" aria-label="Thông tin tóm tắt của actor đang chọn">
@@ -326,21 +327,15 @@ export function FixturePlayground() {
         <p className="scenario-message">{resolvedRead.message}</p>
 
         {resolvedRead.status === 'loading' && (
-          <div className="skeleton-panel" role="status" aria-live="polite">
-            <p>
-              Đang tải dữ liệu mô phỏng ({resolvedRead.simulatedDelayMs}ms)... Khung chiều cao được giữ cố định để tránh
-              lệch bố cục.
-            </p>
-            <div className="skeleton-bar" />
-            <div className="skeleton-bar short" />
-          </div>
+          <LoadingState
+            regionLabel="Kết quả dữ liệu đọc đang tải"
+            statusLabel={`Đang tải dữ liệu mô phỏng (${resolvedRead.simulatedDelayMs}ms).`}
+          />
         )}
 
         {resolvedRead.canRetry && (
           <div className="retry-row">
-            <button type="button" className="btn-primary" onClick={() => setReadMode('normal')}>
-              Thử tải lại (Chuyển về Bình thường)
-            </button>
+            <Button onClick={() => setReadMode('normal')}>Thử tải lại (Chuyển về Bình thường)</Button>
           </div>
         )}
 
@@ -395,62 +390,54 @@ export function FixturePlayground() {
         </div>
 
         <div className="control-grid">
-          <div className="field-group">
-            <label htmlFor="version-select">Phiên bản bản ghi đang mở (Version)</label>
-            <select
-              id="version-select"
-              value={baseVersion}
-              onChange={(e) => setBaseVersion(e.target.value as FixtureVersionId)}
-            >
-              <option value="V2">V2 — Hiện hành ({FIXTURE_VERSIONS.V2.updatedAtUtc})</option>
-              <option value="V1">V1 — Bản cũ (mô phỏng xung đột V1 → V2)</option>
-            </select>
-          </div>
+          <Select
+            id="version-select"
+            label="Phiên bản bản ghi đang mở (Version)"
+            value={baseVersion}
+            onChange={(e) => setBaseVersion(e.target.value as FixtureVersionId)}
+          >
+            <option value="V2">V2 — Hiện hành ({FIXTURE_VERSIONS.V2.updatedAtUtc})</option>
+            <option value="V1">V1 — Bản cũ (mô phỏng xung đột V1 → V2)</option>
+          </Select>
 
-          <div className="field-group">
-            <label htmlFor="outcome-select">Chế độ phản hồi khi bấm nút</label>
-            <select
-              id="outcome-select"
-              value={outcomeMode}
-              onChange={(e) => setOutcomeMode(e.target.value as MutationOutcomeMode)}
-            >
-              {OUTCOME_MODES.map((mode) => (
-                <option key={mode.id} value={mode.id}>
-                  {mode.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="outcome-select"
+            label="Chế độ phản hồi khi bấm nút"
+            value={outcomeMode}
+            onChange={(e) => setOutcomeMode(e.target.value as MutationOutcomeMode)}
+          >
+            {OUTCOME_MODES.map((mode) => (
+              <option key={mode.id} value={mode.id}>
+                {mode.label}
+              </option>
+            ))}
+          </Select>
 
-          <div className="field-group">
-            <label htmlFor="upload-preset-select">Mẫu tệp thử cho nút Upload</label>
-            <select
-              id="upload-preset-select"
-              value={uploadPresetId}
-              onChange={(e) => setUploadPresetId(e.target.value)}
-            >
-              {UPLOAD_PRESETS.map((preset) => (
-                <option key={preset.id} value={preset.id}>
-                  {preset.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="upload-preset-select"
+            label="Mẫu tệp thử cho nút Upload"
+            value={uploadPresetId}
+            onChange={(e) => setUploadPresetId(e.target.value)}
+          >
+            {UPLOAD_PRESETS.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.label}
+              </option>
+            ))}
+          </Select>
 
-          <div className="field-group">
-            <label htmlFor="export-status-select">Trạng thái thử cho nút Export</label>
-            <select
-              id="export-status-select"
-              value={exportStatusOverride}
-              onChange={(e) => setExportStatusOverride(e.target.value as ExportJobStatus)}
-            >
-              <option value="ready">ready (Tải xuống sẵn sàng)</option>
-              <option value="queued">queued (Đang xếp hàng đợi)</option>
-              <option value="processing">processing (Đang đóng gói)</option>
-              <option value="failed">failed (Lỗi tạo gói — cho thử lại)</option>
-              <option value="expired">expired (Hết hạn link tải)</option>
-            </select>
-          </div>
+          <Select
+            id="export-status-select"
+            label="Trạng thái thử cho nút Export"
+            value={exportStatusOverride}
+            onChange={(e) => setExportStatusOverride(e.target.value as ExportJobStatus)}
+          >
+            <option value="ready">ready (Tải xuống sẵn sàng)</option>
+            <option value="queued">queued (Đang xếp hàng đợi)</option>
+            <option value="processing">processing (Đang đóng gói)</option>
+            <option value="failed">failed (Lỗi tạo gói — cho thử lại)</option>
+            <option value="expired">expired (Hết hạn link tải)</option>
+          </Select>
         </div>
 
         <div className="toggle-row">
@@ -474,9 +461,9 @@ export function FixturePlayground() {
 
         <div className="action-button-bar" role="group" aria-label="Các nút thao tác tương tác mô phỏng">
           {ACTION_BUTTONS.map((action) => (
-            <button key={action} type="button" className="btn-action" onClick={() => handleRunAction(action)}>
+            <Button key={action} pending={lastResult.state === 'pending'} onClick={() => handleRunAction(action)}>
               {INTERACTIVE_ACTION_LABELS[action]}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -541,8 +528,8 @@ export function FixturePlayground() {
             {FRONTEND_CASE_FIXTURES.length})
           </h2>
           <div className="field-group inline-filter">
-            <label htmlFor="case-area-filter">Lọc nhóm màn hình</label>
-            <select
+            <Select
+              label="Lọc nhóm màn hình"
               id="case-area-filter"
               value={caseAreaFilter}
               onChange={(e) => setCaseAreaFilter(e.target.value as 'all' | FrontendCaseArea)}
@@ -555,7 +542,7 @@ export function FixturePlayground() {
               </option>
               <option value="community-places-ai">Cộng đồng, Địa điểm, Sự kiện &amp; Trợ lý AI (L01–I02)</option>
               <option value="admin-data-seo-qa">Quản trị, Quyền dữ liệu, SEO &amp; QA (A01–Q01)</option>
-            </select>
+            </Select>
           </div>
         </div>
 

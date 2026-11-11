@@ -110,3 +110,387 @@ test('tokens keep controls readable, keyboard accessible and responsive', async 
   await link.click();
   await expect(page).toHaveURL(/#fixtures$/);
 });
+
+test('Button forwards native props and ref, prevents pending repeats and supports keyboard', async ({ page }) => {
+  await page.goto('/preview#buttons');
+  const demo = page.getByRole('region', { name: 'Button · primary / secondary' });
+  const form = demo.getByRole('form', { name: 'Thử Button' });
+  const status = demo.getByRole('status');
+  const submit = form.locator('button[name="intent"]');
+  const counter = form.getByRole('button', { name: 'Đếm click', exact: true });
+  await expect(counter).toHaveAttribute('type', 'button');
+  await counter.click();
+  await expect(status).toContainText('Số click: 1. Số lần gửi: 0.');
+  await expect(submit).toHaveAttribute('type', 'submit');
+  await expect(submit).toHaveAttribute('value', 'sample');
+
+  await form.getByRole('button', { name: 'Focus nút gửi', exact: true }).click();
+  await expect(submit).toBeFocused();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(submit).toBeFocused();
+  const focus = await submit.evaluate((button) => {
+    const style = getComputedStyle(button);
+    return {
+      outline: style.outlineWidth,
+      color: style.outlineColor,
+      shadow: style.boxShadow,
+      height: button.getBoundingClientRect().height,
+    };
+  });
+  expect(focus.outline).toBe('3px');
+  expect(focus.color).toBe('rgb(88, 59, 43)');
+  expect(focus.shadow).toContain('rgb(255, 255, 255)');
+  expect(focus.height).toBeGreaterThanOrEqual(44);
+
+  await page.keyboard.press('Enter');
+  await expect(submit).toHaveText('Đang xử lý…');
+  await expect(submit).toHaveAttribute('aria-busy', 'true');
+  await expect(submit).toBeDisabled();
+  await submit.evaluate((button) => {
+    if (!(button instanceof HTMLButtonElement)) throw new Error('Expected native button');
+    button.click();
+    button.click();
+  });
+  await expect(status).toContainText('Số lần gửi: 1.');
+  await expect(submit).toBeEnabled();
+  await expect(submit).toHaveText('Gửi mẫu');
+  await expect(submit).not.toHaveAttribute('aria-busy', 'true');
+  await expect(status).toContainText('Số lần gửi: 1. Đã hoàn tất mẫu.');
+
+  const disabled = form.getByRole('button', { name: 'Chưa khả dụng', exact: true });
+  await expect(disabled).toBeDisabled();
+  await disabled.evaluate((button) => {
+    if (button instanceof HTMLButtonElement) button.click();
+  });
+  await expect(status).toContainText('Số click: 1. Số lần gửi: 1.');
+  const secondary = form.getByRole('button', { name: 'Focus nút gửi', exact: true });
+  await page.mouse.move(0, 0);
+  await expect(secondary).toHaveCSS('background-color', 'rgb(234, 216, 194)');
+  const colors = await secondary.evaluate((button) => ({
+    color: getComputedStyle(button).color,
+    background: getComputedStyle(button).backgroundColor,
+  }));
+  expect(colors).toEqual({ color: 'rgb(88, 59, 43)', background: 'rgb(234, 216, 194)' });
+
+  await page.setViewportSize({ width: 360, height: 900 });
+  const longLabel = form.getByRole('button', { name: /^Nhãn dài để thử xuống dòng/ });
+  const size = await longLabel.evaluate((button) => ({
+    height: button.getBoundingClientRect().height,
+    clipped: button.scrollWidth > button.clientWidth,
+  }));
+  expect(size.height).toBeGreaterThan(44);
+  expect(size.clipped).toBe(false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await counter.hover();
+  await page.mouse.down();
+  const motion = await counter.evaluate((button) => ({
+    transition: getComputedStyle(button).transitionDuration,
+    transform: getComputedStyle(button).transform,
+  }));
+  expect(motion).toEqual({ transition: '0s', transform: 'none' });
+  await page.mouse.up();
+
+  await page.locator('#outcome-select').selectOption('pending');
+  const actions = page.getByRole('group', { name: 'Các nút thao tác tương tác mô phỏng' });
+  await actions.getByRole('button').first().click();
+  await expect(actions.locator('button[disabled][aria-busy="true"]')).toHaveCount(7);
+  await page.getByRole('button', { name: 'Khôi phục fixture gốc', exact: true }).click();
+  await expect(actions.locator('button[disabled]')).toHaveCount(0);
+});
+
+test('Field renders accessible SSR errors and preserves native input behavior', async ({ page, browser }) => {
+  await page.goto('/preview#fields');
+  const ssr = await browser.newPage({ javaScriptEnabled: false });
+  try {
+    await ssr.goto(page.url());
+    const email = ssr.getByRole('textbox', { name: 'Email mẫu', exact: true });
+    await expect(email).toHaveValue('chua-hop-le');
+    await expect(email).toHaveAttribute('aria-invalid', 'true');
+    await expect(email).toHaveAttribute('aria-describedby', 'field-email-help field-email-error');
+    await expect(ssr.locator('#field-email-error')).toHaveText('Email mẫu chưa hợp lệ.');
+    await ssr.locator('label[for="field-email"]').click();
+    await expect(email).toBeFocused();
+  } finally {
+    await ssr.close();
+  }
+
+  const demo = page.getByRole('region', { name: 'Field · label và lỗi accessible' });
+  const name = demo.getByRole('textbox', { name: 'Biệt danh mẫu', exact: true });
+  const email = demo.getByRole('textbox', { name: 'Email mẫu', exact: true });
+  await expect(name).toHaveAttribute('name', 'sampleName');
+  await expect(name).toHaveAttribute('autocomplete', 'nickname');
+  await expect(email).toHaveAttribute('type', 'email');
+  await expect(email).toHaveAttribute('autocomplete', 'email');
+  await expect(email).toHaveAttribute('required', '');
+  await demo.locator('label[for="field-name"]').click();
+  await expect(name).toBeFocused();
+  await expect(name).toHaveCSS('outline-width', '3px');
+  await name.fill('   ');
+  await email.fill('sai-email.test');
+  await demo.getByRole('button', { name: 'Focus email', exact: true }).click();
+  await expect(email).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(demo.getByRole('button', { name: 'Kiểm tra mẫu', exact: true })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(demo.getByRole('alert')).toHaveCount(2);
+  await expect(name).toHaveValue('   ');
+  await expect(email).toHaveValue('sai-email.test');
+  await expect(name).toHaveAttribute('aria-invalid', 'true');
+  await expect(name).toHaveAttribute('aria-describedby', 'field-name-help field-name-error');
+  await expect(email).toHaveAttribute('aria-describedby', 'field-email-help field-email-error');
+  await expect(email).toHaveAccessibleDescription(/Dùng địa chỉ giả.*Nhập email mẫu hợp lệ/);
+  await expect(email).toHaveCSS('border-top-color', 'rgb(186, 26, 26)');
+  const ids = await page.locator('[id]').evaluateAll((nodes) => nodes.map((node) => node.id));
+  expect(new Set(ids).size).toBe(ids.length);
+
+  await page.setViewportSize({ width: 360, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await name.fill('Bơ mẫu');
+  await email.fill('sen@ocungboss.test');
+  await demo.getByRole('button', { name: 'Kiểm tra mẫu', exact: true }).click();
+  await expect(demo.getByRole('status')).toHaveText('Mẫu hợp lệ; không gửi dữ liệu.');
+  await expect(demo.getByRole('alert')).toHaveCount(0);
+  await expect(name).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(email).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(name).toHaveAttribute('aria-describedby', 'field-name-help');
+  await expect(email).toHaveAttribute('aria-describedby', 'field-email-help');
+  await expect(name).toHaveValue('Bơ mẫu');
+  await expect(email).toHaveValue('sen@ocungboss.test');
+});
+
+test('Select keeps native placeholder validity, keyboard access and selections after errors', async ({
+  page,
+  browser,
+}) => {
+  await page.goto('/preview#selects');
+  const ssr = await browser.newPage({ javaScriptEnabled: false });
+  try {
+    await ssr.goto(page.url());
+    const select = ssr.getByLabel('Thú cưng mẫu', { exact: true });
+    await expect(select).toHaveValue('');
+    await expect(select).toHaveAttribute('aria-invalid', 'true');
+    await expect(select).toHaveAccessibleDescription(/Chọn hồ sơ giả.*Chọn thú cưng mẫu/);
+    await ssr.locator('label[for="select-pet"]').click();
+    await expect(select).toBeFocused();
+  } finally {
+    await ssr.close();
+  }
+
+  const demo = page.getByRole('region', { name: 'Select · lựa chọn native' });
+  const pet = demo.getByRole('combobox', { name: 'Thú cưng mẫu', exact: true });
+  const frequency = demo.getByLabel('Tần suất mẫu', { exact: true });
+  const disabled = demo.getByLabel('Lựa chọn chưa khả dụng', { exact: true });
+  const submit = demo.getByRole('button', { name: 'Kiểm tra lựa chọn', exact: true });
+  await expect(pet).toHaveAttribute('name', 'samplePet');
+  await expect(pet.locator('option').first()).toHaveAttribute('value', '');
+  await expect(pet.locator('option').first()).toBeDisabled();
+  expect(await pet.evaluate((node) => node instanceof HTMLSelectElement && node.validity.valueMissing)).toBe(true);
+  await expect(frequency).toHaveValue('weekly');
+  await expect(disabled).toBeDisabled();
+  await submit.click();
+  await expect(demo.getByRole('alert')).toHaveCount(2);
+  await expect(pet).toHaveAttribute('aria-describedby', 'select-pet-help select-pet-error');
+  await expect(pet).toHaveCSS('border-top-color', 'rgb(186, 26, 26)');
+  await demo.getByRole('button', { name: 'Focus lựa chọn', exact: true }).click();
+  await expect(pet).toBeFocused();
+  await expect(pet).toHaveCSS('outline-width', '3px');
+  await page.keyboard.press('ArrowDown');
+  await expect(pet).toHaveValue('PA');
+  await page.keyboard.press('Tab');
+  await expect(frequency).toBeFocused();
+  await page.keyboard.press('Home');
+  await expect(frequency).toHaveValue('daily');
+  await page.keyboard.press('Tab');
+  await expect(demo.getByLabel('Ghi chú mẫu', { exact: true })).toBeFocused();
+  await pet.selectOption('PB');
+  await submit.click();
+  await expect(demo.getByRole('status')).toHaveText('Mẫu còn lỗi; lựa chọn được giữ nguyên.');
+  await expect(pet).toHaveValue('PB');
+  await expect(frequency).toHaveValue('daily');
+  await expect(pet).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(pet).toHaveAttribute('aria-describedby', 'select-pet-help');
+  await expect(demo.locator('#select-pet-error')).toHaveCount(0);
+  await expect(demo.getByRole('alert')).toHaveCount(1);
+  for (const width of [360, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    const bounds = await pet.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+  }
+  await demo.getByLabel('Ghi chú mẫu', { exact: true }).fill('Mẫu giả');
+  await submit.click();
+  await expect(demo.getByRole('status')).toHaveText('Mẫu hợp lệ; không gửi dữ liệu.');
+  const formValues = await demo.locator('form').evaluate((form) => Object.fromEntries(new FormData(form)));
+  expect(formValues).toEqual({ samplePet: 'PB', sampleFrequency: 'daily', sampleNote: 'Mẫu giả' });
+  await expect(demo.getByRole('alert')).toHaveCount(0);
+  const ids = await page.locator('[id]').evaluateAll((nodes) => nodes.map((node) => node.id));
+  expect(new Set(ids).size).toBe(ids.length);
+});
+
+test('Content cards keep image ratio, separate links from save actions and show missing-image fallback', async ({
+  page,
+}) => {
+  await page.goto('/preview#cards');
+  const demo = page.getByRole('region', { name: 'Card nội dung' });
+  const cards = demo.getByRole('article');
+  await expect(cards).toHaveCount(2);
+
+  const illustrated = cards.nth(0);
+  const link = illustrated.getByRole('link', { name: /Lịch chăm sóc chó con/ });
+  const image = illustrated.getByRole('img', { name: 'Minh họa chú chó con nâu trên nền màu ấm' });
+  await expect(link).toHaveAttribute('href', '/preview#fixtures');
+  await expect(image).toBeVisible();
+  await expect(image).toHaveJSProperty('complete', true);
+  expect(await image.evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  const ratio = await illustrated.locator('.content-card-media').evaluate((node) => {
+    const { width, height } = node.getBoundingClientRect();
+    return width / height;
+  });
+  expect(ratio).toBeCloseTo(4 / 3, 1);
+  await expect(illustrated.locator('button')).toHaveCount(1);
+  await expect(link.locator('button')).toHaveCount(0);
+
+  const save = illustrated.getByRole('button', {
+    name: 'Lưu bài viết: Lịch chăm sóc chó con 8 tuần tuổi khi mới đón về nhà',
+  });
+  await link.focus();
+  await expect(link).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(save).toBeFocused();
+  await expect(save).toHaveAttribute('aria-pressed', 'false');
+  await expect(save).toHaveCSS('outline-width', '3px');
+  await page.keyboard.press('Space');
+  await expect(illustrated.getByRole('button', { name: /^Bỏ lưu bài viết:/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page).toHaveURL(/\/preview#cards$/);
+
+  const missing = cards.nth(1);
+  await expect(missing.getByRole('img', { name: 'Bài viết chưa có ảnh minh họa' })).toBeVisible();
+  await expect(missing.getByRole('heading')).toContainText('Tiêu đề mẫu dài');
+  for (const width of [360, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    const bounds = await illustrated.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+  }
+});
+
+test('Alerts announce one appropriate state and empty views offer relevant actions', async ({ page }) => {
+  await page.goto('/preview#alerts');
+  const demo = page.getByRole('region', { name: 'Alert và empty state' });
+  const liveRegions = demo.locator('[role="alert"], [role="status"]');
+  await expect(liveRegions).toHaveCount(1);
+  await expect(demo.getByRole('status')).toContainText('Thông tin');
+  await expect(demo.locator('[role="status"]')).not.toHaveAttribute('aria-live');
+
+  await demo.getByRole('button', { name: 'Lỗi', exact: true }).click();
+  const alert = demo.getByRole('alert');
+  await expect(alert).toContainText('Lỗi');
+  await expect(alert).toContainText('Chưa tải được nội dung mẫu');
+  await expect(liveRegions).toHaveCount(1);
+  const errorChoice = demo.getByRole('button', { name: 'Lỗi', exact: true });
+  await errorChoice.focus();
+  await page.keyboard.press('Tab');
+  const retry = demo.getByRole('button', { name: 'Thử lại dữ liệu mẫu', exact: true });
+  await expect(retry).toBeFocused();
+  await expect(retry).toHaveCSS('outline-width', '3px');
+  await page.keyboard.press('Enter');
+  await expect(alert).toContainText('Thử lại lần 1 vẫn gặp lỗi.');
+  await expect(demo.getByRole('status')).toHaveCount(0);
+  await expect(liveRegions).toHaveCount(1);
+
+  await demo.getByRole('button', { name: 'Thành công', exact: true }).click();
+  await expect(demo.getByRole('status')).toContainText('Thành công');
+  await expect(demo.getByRole('status')).toContainText('thay đổi trong bộ nhớ preview');
+  await expect(demo.getByRole('alert')).toHaveCount(0);
+  await expect(liveRegions).toHaveCount(1);
+
+  const empty = demo.getByRole('region', { name: 'Chưa có bài viết đã lưu' });
+  await expect(empty).toContainText('Lưu một bài viết');
+  const suggestions = empty.getByRole('link', { name: 'Xem bài viết gợi ý' });
+  await expect(suggestions).toHaveAttribute('href', '/preview#cards');
+  await demo.getByRole('button', { name: 'Chưa có dữ liệu', exact: true }).focus();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await expect(suggestions).toBeFocused();
+  await expect(suggestions).toHaveCSS('outline-width', '3px');
+
+  await demo.getByRole('button', { name: 'Không có kết quả', exact: true }).click();
+  const noResults = demo.getByRole('region', { name: 'Không tìm thấy bài viết phù hợp' });
+  await expect(noResults).toContainText('Không có kết quả cho bộ lọc');
+  await noResults.getByRole('button', { name: 'Xóa bộ lọc' }).click();
+  await expect(demo.locator('.empty-state-result')).toContainText('Danh sách gợi ý mẫu đang hiển thị.');
+  await expect(noResults).toHaveCount(0);
+  await page.setViewportSize({ width: 360, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  const ids = await page.locator('[id]').evaluateAll((nodes) => nodes.map((node) => node.id));
+  expect(new Set(ids).size).toBe(ids.length);
+});
+
+test('Loading skeleton stays hidden from assistive tech and resolves to each selected state', async ({ page }) => {
+  await page.goto('/preview#loading');
+  const demo = page.getByRole('region', { name: 'Skeleton và trạng thái tải' });
+  const outcome = demo.getByLabel('Kết quả tải mẫu', { exact: true });
+  const start = demo.getByRole('button', { name: 'Tải dữ liệu giả', exact: true });
+
+  await outcome.selectOption('success');
+  await start.focus();
+  await page.keyboard.press('Enter');
+  const busy = demo.getByRole('region', { name: 'Nội dung mẫu đang tải' });
+  await expect(busy).toHaveAttribute('aria-busy', 'true');
+  const status = demo.getByRole('status');
+  await expect(status).toBeVisible();
+  await expect(demo.locator('[role="status"], [role="alert"]')).toHaveCount(1);
+  const skeleton = busy.locator('[aria-hidden="true"]');
+  await expect(skeleton.locator('.skeleton-bar')).toHaveCount(2);
+  await expect(skeleton.locator('a, button, input, select, [tabindex]')).toHaveCount(0);
+  await expect(busy).not.toContainText('Lorem');
+  expect(
+    await skeleton
+      .locator('.skeleton-bar')
+      .first()
+      .evaluate((bar) => getComputedStyle(bar).animationDuration),
+  ).toBe('1.2s');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(
+    await skeleton
+      .locator('.skeleton-bar')
+      .first()
+      .evaluate((bar) => getComputedStyle(bar).animationDuration),
+  ).toBe('0s');
+  await expect(demo.getByRole('status')).toContainText('Bài viết đã sẵn sàng');
+  await expect(demo.getByRole('region', { name: 'Nội dung mẫu đang tải' })).toHaveCount(0);
+  await expect(demo.locator('[aria-busy="true"]')).toHaveCount(0);
+
+  await outcome.selectOption('empty');
+  await demo.getByRole('button', { name: 'Tải dữ liệu giả', exact: true }).click();
+  await expect(demo.getByRole('region', { name: 'Chưa có gợi ý phù hợp' })).toBeVisible();
+  await expect(demo.locator('.skeleton-bar')).toHaveCount(0);
+
+  await outcome.selectOption('error');
+  await demo.getByRole('button', { name: 'Tải dữ liệu giả', exact: true }).click();
+  const error = demo.getByRole('alert');
+  await expect(error).toContainText('Lỗi mô phỏng');
+  await expect(demo.getByRole('status')).toHaveCount(0);
+  await demo.getByRole('button', { name: 'Thử tải lại' }).click();
+  await expect(demo.getByRole('region', { name: 'Nội dung mẫu đang tải' })).toHaveAttribute('aria-busy', 'true');
+  await expect(demo.getByRole('alert')).toContainText('Lỗi mô phỏng');
+  await expect(demo.getByRole('region', { name: 'Nội dung mẫu đang tải' })).toHaveCount(0);
+
+  await page.setViewportSize({ width: 360, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  const fixtureMode = page.locator('#read-mode-select');
+  await fixtureMode.selectOption('slow');
+  const fixtureLoading = page.getByRole('region', { name: 'Kết quả dữ liệu đọc đang tải' });
+  await expect(fixtureLoading).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('.loading-status')).toContainText('900ms');
+  await expect(page.locator('#read-state-heading')).toContainText('ready');
+  await expect(fixtureLoading).toHaveCount(0);
+  const ids = await page.locator('[id]').evaluateAll((nodes) => nodes.map((node) => node.id));
+  expect(new Set(ids).size).toBe(ids.length);
+});

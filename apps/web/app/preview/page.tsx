@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Field } from '../../components/Field';
+import { ButtonPlayground } from './ButtonPlayground';
+import { CardPlayground } from './CardPlayground';
+import { AlertPlayground } from './AlertPlayground';
+import { FieldPlayground } from './FieldPlayground';
 import { FixturePlayground } from './FixturePlayground';
+import { LoadingPlayground } from './LoadingPlayground';
+import { SelectPlayground } from './SelectPlayground';
 
 export const metadata: Metadata = {
   title: 'Preview dữ liệu ảo & kịch bản tương tác | OCungBoss',
@@ -150,14 +157,24 @@ export default function PreviewPage() {
             </ul>
 
             <h3>Chữ, placeholder và viền control</h3>
-            <div className="field-group">
-              <label htmlFor="token-example">Tên hồ sơ mẫu</label>
-              <input id="token-example" type="text" placeholder="Nhập tên boss để thử" autoComplete="off" />
-            </div>
+            <Field
+              id="token-example"
+              label="Tên hồ sơ mẫu"
+              type="text"
+              placeholder="Nhập tên boss để thử"
+              autoComplete="off"
+            />
             <a className="btn-primary" href="#fixtures">
               Thử dữ liệu ảo
             </a>
           </section>
+
+          <ButtonPlayground />
+          <FieldPlayground />
+          <SelectPlayground />
+          <CardPlayground />
+          <AlertPlayground />
+          <LoadingPlayground />
 
           <div id="fixtures">
             <FixturePlayground />
