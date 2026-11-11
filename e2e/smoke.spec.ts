@@ -1,6 +1,109 @@
 import { expect, test } from '@playwright/test';
 
+test('pagination keeps filters and repeated query values through links, forms and browser history', async ({
+  page,
+}) => {
+  await page.goto('/preview?loai=public-content-search&sapXep=ma-giam&tag=a&tag=b&trang=1#pagination');
+  const section = page.locator('#pagination');
+  const nav = section.getByRole('navigation', { name: 'Phân trang ca mẫu' });
+  const items = section.getByRole('list', { name: 'Danh sách ca mẫu' }).locator('li');
+  const search = section.getByRole('searchbox', { name: 'Tìm ca mẫu' });
+  const area = section.getByRole('combobox', { name: 'Nhóm luồng mẫu' });
+  const sort = section.getByRole('combobox', { name: 'Sắp xếp ca mẫu' });
+  const apply = section.getByRole('button', { name: 'Áp dụng bộ lọc' });
+  await expect(items).toHaveCount(12);
+  await expect(items.first().locator('.pagination-code')).toHaveText('P24');
+  await expect(nav.getByRole('link', { name: 'Trang trước', exact: true })).toHaveCount(0);
+  const href = await nav.getByRole('link', { name: 'Trang sau', exact: true }).getAttribute('href');
+  const next = new URL(href!, page.url());
+  expect(next.searchParams.get('loai')).toBe('public-content-search');
+  expect(next.searchParams.get('sapXep')).toBe('ma-giam');
+  expect(next.searchParams.getAll('tag')).toEqual(['a', 'b']);
+  await nav.getByRole('link', { name: 'Trang sau', exact: true }).click();
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('2');
+  await expect(items.first().locator('.pagination-code')).toHaveText('P12');
+  await expect(nav.getByRole('link', { name: 'Trang sau', exact: true })).toHaveCount(0);
+  await page.goBack();
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('1');
+  await page.goForward();
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('2');
+  await page.reload();
+  await expect(area).toHaveValue('public-content-search');
+  await expect(sort).toHaveValue('ma-giam');
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('2');
+
+  await search.fill('P01');
+  await sort.selectOption('ma-tang');
+  await apply.click();
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('1');
+  await expect(items).toHaveCount(1);
+  await expect(items.first().locator('.pagination-code')).toHaveText('P01');
+  await expect(nav.getByRole('link')).toHaveCount(0);
+  expect(new URL(page.url()).searchParams.get('trang')).toBe('1');
+  expect(new URL(page.url()).searchParams.getAll('tag')).toEqual(['a', 'b']);
+  await page.goBack();
+  await expect(search).toHaveValue('');
+  await expect(sort).toHaveValue('ma-giam');
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('2');
+  await page.goForward();
+  await expect(search).toHaveValue('P01');
+  await page.reload();
+  await expect(search).toHaveValue('P01');
+
+  await search.fill('khong-co-ca-mau-987');
+  await apply.click();
+  await expect(section.getByRole('heading', { name: 'Không tìm thấy ca mẫu' })).toBeVisible();
+  await expect(nav).toHaveCount(0);
+  await section.getByRole('button', { name: 'Xóa bộ lọc mẫu' }).click();
+  await expect(items).toHaveCount(12);
+  await expect(area).toHaveValue('all');
+  expect(new URL(page.url()).searchParams.getAll('tag')).toEqual(['a', 'b']);
+  await nav.getByRole('link', { name: 'Trang 2', exact: true }).press('Enter');
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('2');
+  for (const width of [360, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await section.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await section.screenshot({ path: `test-results/task28-pagination-${width}.png` });
+  }
+});
+
+test('pagination normalizes strange queries without losing unrelated or repeated filters', async ({ page }) => {
+  const section = page.locator('#pagination');
+  const nav = section.getByRole('navigation', { name: 'Phân trang ca mẫu' });
+  for (const [input, expected] of [
+    ['-1', '1'],
+    ['1.5', '1'],
+    ['999', '7'],
+    ['9007199254740992', '1'],
+  ]) {
+    await page.goto(`/preview?trang=${input}&tag=a&tag=b#pagination`);
+    await expect(nav.locator('[aria-current="page"]')).toHaveText(expected);
+    await expect(section.getByText('Đã điều chỉnh lựa chọn không hợp lệ')).toBeVisible();
+    const href = await section.getByRole('link', { name: 'Dùng địa chỉ hợp lệ' }).getAttribute('href');
+    const normalized = new URL(href!, page.url());
+    expect(normalized.searchParams.get('trang')).toBe(expected);
+    expect(normalized.searchParams.getAll('tag')).toEqual(['a', 'b']);
+  }
+  await page.goto('/preview?trang=2&trang=3&loai=bad&sapXep=bad&tag=a&tag=b#pagination');
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('2');
+  await expect(section.getByRole('combobox', { name: 'Nhóm luồng mẫu' })).toHaveValue('all');
+  await expect(section.getByRole('combobox', { name: 'Sắp xếp ca mẫu' })).toHaveValue('ma-tang');
+  await section.getByRole('link', { name: 'Dùng địa chỉ hợp lệ' }).click();
+  await expect(section.getByText('Đã điều chỉnh lựa chọn không hợp lệ')).toHaveCount(0);
+  expect(new URL(page.url()).searchParams.getAll('trang')).toEqual(['2']);
+  await page.goto(`/preview?q=${'x'.repeat(201)}&trang=999&tag=a&tag=b#pagination`);
+  await expect(section.getByRole('searchbox', { name: 'Tìm ca mẫu' })).toHaveValue('x'.repeat(200));
+  await expect(nav).toHaveCount(0);
+  await section.getByRole('link', { name: 'Dùng địa chỉ hợp lệ' }).click();
+  await expect(section.getByText('Đã điều chỉnh lựa chọn không hợp lệ')).toHaveCount(0);
+  expect(new URL(page.url()).searchParams.get('q')).toHaveLength(200);
+  expect(new URL(page.url()).searchParams.get('trang')).toBe('1');
+  expect(new URL(page.url()).searchParams.getAll('tag')).toEqual(['a', 'b']);
+});
+
 test('confirmation preserves context, traps focus and prevents duplicate destructive actions', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-11T00:00:00Z') });
   await page.goto('/preview#confirm-dialog');
   const preview = page.locator('#confirm-dialog');
   const trigger = page.locator('#confirm-trigger');
@@ -42,6 +145,7 @@ test('confirmation preserves context, traps focus and prevents duplicate destruc
   }
   await page.mouse.click(1, 1);
   await expect(dialog).toBeVisible();
+  await page.clock.pauseAt(new Date('2026-11-11T01:00:00Z'));
   await confirm.click();
   await expect(dialog.getByRole('button', { name: 'Đang xử lý…', exact: true })).toBeDisabled();
   await expect(cancel).toHaveAttribute('aria-disabled', 'true');
@@ -52,6 +156,7 @@ test('confirmation preserves context, traps focus and prevents duplicate destruc
   await page.keyboard.press('Escape');
   await expect(dialog).toBeVisible();
   await expect(preview).toContainText('Lần thử mô phỏng: 1');
+  await page.clock.runFor(1200);
   await expect(dialog.getByRole('alert')).toContainText('Nội dung vẫn được giữ nguyên.');
   await expect(dialog).toContainText('Ghi chú chăm sóc Bơ');
   await expect(cancel).toBeFocused();
@@ -63,6 +168,7 @@ test('confirmation preserves context, traps focus and prevents duplicate destruc
   await dialog.screenshot({ path: 'test-results/task27-confirm-dialog-desktop.png' });
   await confirm.dblclick();
   await expect(preview).toContainText('Lần thử mô phỏng: 2');
+  await page.clock.runFor(1200);
   await expect(dialog).toHaveCount(0);
   await expect(preview).toContainText('Đã xóa ghi chú mẫu.');
   await expect(preview.locator('.confirm-note')).toHaveCount(0);
@@ -183,6 +289,7 @@ test('tokens keep controls readable, keyboard accessible and responsive', async 
 });
 
 test('Button forwards native props and ref, prevents pending repeats and supports keyboard', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-11T00:00:00Z') });
   await page.goto('/preview#buttons');
   const demo = page.getByRole('region', { name: 'Button · primary / secondary' });
   const form = demo.getByRole('form', { name: 'Thử Button' });
@@ -214,6 +321,7 @@ test('Button forwards native props and ref, prevents pending repeats and support
   expect(focus.shadow).toContain('rgb(255, 255, 255)');
   expect(focus.height).toBeGreaterThanOrEqual(44);
 
+  await page.clock.pauseAt(new Date('2026-11-11T01:00:00Z'));
   await page.keyboard.press('Enter');
   await expect(submit).toHaveText('Đang xử lý…');
   await expect(submit).toHaveAttribute('aria-busy', 'true');
@@ -224,6 +332,7 @@ test('Button forwards native props and ref, prevents pending repeats and support
     button.click();
   });
   await expect(status).toContainText('Số lần gửi: 1.');
+  await page.clock.runFor(1000);
   await expect(submit).toBeEnabled();
   await expect(submit).toHaveText('Gửi mẫu');
   await expect(submit).not.toHaveAttribute('aria-busy', 'true');

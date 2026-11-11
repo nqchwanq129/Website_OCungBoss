@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { Field } from '../../components/Field';
+import { LoadingState } from '../../components/LoadingState';
 import { ButtonPlayground } from './ButtonPlayground';
 import { CardPlayground } from './CardPlayground';
 import { ConfirmDialogPlayground } from './ConfirmDialogPlayground';
@@ -8,6 +10,7 @@ import { AlertPlayground } from './AlertPlayground';
 import { FieldPlayground } from './FieldPlayground';
 import { FixturePlayground } from './FixturePlayground';
 import { LoadingPlayground } from './LoadingPlayground';
+import { PaginationPlayground } from './PaginationPlayground';
 import { SelectPlayground } from './SelectPlayground';
 
 export const metadata: Metadata = {
@@ -177,6 +180,11 @@ export default function PreviewPage() {
           <AlertPlayground />
           <LoadingPlayground />
           <ConfirmDialogPlayground />
+          <Suspense
+            fallback={<LoadingState regionLabel="Đang mở danh sách ca mẫu" statusLabel="Đang đọc bộ lọc mẫu." />}
+          >
+            <PaginationPlayground />
+          </Suspense>
 
           <div id="fixtures">
             <FixturePlayground />
