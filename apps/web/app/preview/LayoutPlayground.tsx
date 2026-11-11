@@ -14,6 +14,9 @@ export function LayoutPlayground() {
         <Link href="/preview/auth">Xem Auth layout · sáu ngữ cảnh form mẫu</Link>
       </p>
       <p>
+        <Link href="/preview/account">Xem Account layout · hồ sơ và hành động nhanh mẫu</Link>
+      </p>
+      <p>
         Thử Menu dưới 1024px, tìm “boss” hoặc từ không có kết quả; đăng nhập/đăng xuất mẫu và tên thành viên dài. Các
         trang chưa triển khai không xuất hiện trong menu.
       </p>

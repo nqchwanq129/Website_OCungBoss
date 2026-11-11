@@ -407,6 +407,107 @@ h2 {
   margin-bottom: var(--space-xl);
 }
 
+.account-layout > .breadcrumb {
+  margin-bottom: var(--space-lg);
+}
+
+.account-layout h1 {
+  max-width: none;
+}
+
+.account-pet-selector {
+  margin-block: var(--space-xl);
+}
+
+.account-layout .control-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+
+.account-grid,
+.account-profile-column,
+.account-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+
+.account-layout .shell-card {
+  min-width: 0;
+  border-radius: 1.5rem;
+}
+
+.account-pet-mark {
+  display: grid;
+  place-items: center;
+  min-height: 8rem;
+  margin-bottom: var(--space-lg);
+  border-radius: var(--radius-default);
+  background: var(--border);
+  font-size: 3rem;
+}
+
+.account-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.account-facts > div {
+  padding: var(--space-sm);
+  border-radius: var(--radius-default);
+  background: var(--canvas);
+}
+
+.account-facts dd {
+  margin: 0;
+  color: var(--heading);
+  font-weight: 700;
+}
+
+.account-quick-actions a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--space-md);
+  border-radius: var(--radius-default);
+  color: var(--heading);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.account-quick-actions a:hover {
+  background: var(--canvas);
+}
+
+.account-long-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  margin-top: var(--space-md);
+}
+
+.account-anchor {
+  scroll-margin-top: var(--space-lg);
+}
+
+.account-anchor:focus {
+  outline: 3px solid var(--secondary);
+  outline-offset: 3px;
+}
+
+@media (min-width: 1024px) {
+  .account-grid {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  }
+
+  .account-grid-full {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .auth-grid {
   display: grid;
   grid-template-areas: 'form' 'intro';
