@@ -1,0 +1,54 @@
+# Default text normalization to LF.
+* text=auto eol=lf
+
+# Source, docs, configuration and scripts.
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf
+*.mjs text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.mdx text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.prisma text eol=lf
+*.sql text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+.gitignore text eol=lf
+.editorconfig text eol=lf
+.gitattributes text eol=lf
+.env.example text eol=lf
+.env.sample text eol=lf
+.env.template text eol=lf
+
+# Windows batch and PowerShell scripts.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets must never undergo line-ending conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.bz2 binary
+*.xz binary
+*.zst binary

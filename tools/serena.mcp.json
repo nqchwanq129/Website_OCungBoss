@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ocungboss-serena": {
+      "command": "C:\\Users\\radio\\Desktop\\OCungBossNew\\.tools\\serena-runtime\\Scripts\\python.exe",
+      "args": ["C:\\Users\\radio\\Desktop\\OCungBossNew\\tools\\serena_mcp.py"]
+    }
+  }
+}

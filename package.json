@@ -1,0 +1,26 @@
+{
+  "name": "ocungboss",
+  "private": true,
+  "packageManager": "pnpm@12.19.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @ocungboss/web dev",
+    "build": "pnpm --filter @ocungboss/web build",
+    "typecheck": "pnpm --filter @ocungboss/web typecheck",
+    "lint": "pnpm --filter @ocungboss/web lint",
+    "test": "pnpm --filter @ocungboss/web test",
+    "test:e2e": "playwright test",
+    "secret:check": "node tools/check-frontend-secrets.cjs",
+    "secret:check:test": "node tools/check-frontend-secrets.cjs --self-test",
+    "dependency:check": "pnpm audit --prod=false --filter @ocungboss/web",
+    "quality:check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm test:e2e",
+    "format:check": "prettier --ignore-path=.prettierignore --check \"apps/web/**/*.{ts,tsx,css,json,mjs}\" \"e2e/**/*.ts\" \"docs/**/*.{md,cjs}\" \"tools/**/*.{js,cjs,mjs,json}\" \"*.{md,ts,json,yaml,yml,js,cjs,mjs}\" .prettierrc.json",
+    "format": "prettier --ignore-path=.prettierignore --write \"apps/web/**/*.{ts,tsx,css,json,mjs}\" \"e2e/**/*.ts\" \"docs/**/*.{md,cjs}\" \"tools/**/*.{js,cjs,mjs,json}\" \"*.{md,ts,json,yaml,yml,js,cjs,mjs}\" .prettierrc.json"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "prettier": "3.9.10"
+  },
+  "engines": {
+    "node": ">=24.22.2 <25"
+  }
+}

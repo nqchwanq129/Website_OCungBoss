@@ -1,0 +1,6 @@
+#!/bin/sh
+paths=$(git diff --cached --name-only -- ':(top,icase)docs' ':(top,icase)design') || exit 1
+if [ -n "$paths" ]; then
+  echo 'Blocked: docs/ and design/ must stay local.' >&2
+  exit 1
+fi
