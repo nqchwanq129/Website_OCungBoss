@@ -1,5 +1,136 @@
 import { expect, test } from '@playwright/test';
 
+test('public desktop header has working navigation, fixture search and guest/member states without overflow', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const header = page.getByRole('banner');
+  const nav = header.getByRole('navigation', { name: 'Điều hướng chính' });
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('Trang chủ');
+  await expect(nav.getByRole('link')).toHaveCount(1);
+  await header.getByRole('button', { name: 'Đăng nhập (mẫu)', exact: true }).click();
+  await expect(header).toContainText('Nguyễn Hoàng Minh Anh');
+  for (const width of [1024, 1100, 1279, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(header.getByRole('button', { name: 'Menu', exact: true })).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  const search = header.getByRole('searchbox');
+  await search.fill('boss');
+  await search.press('Enter');
+  await expect(header.getByRole('status').first()).toHaveText('1 kết quả mẫu.');
+  await expect(header.getByRole('link', { name: 'Cùng bạn chăm boss bằng kiến thức đáng tin cậy' })).toHaveAttribute(
+    'href',
+    '/',
+  );
+  await search.fill('không có nội dung này');
+  await search.press('Enter');
+  await expect(header.getByRole('status').first()).toHaveText('Không có kết quả mẫu.');
+  await expect(search).toHaveValue('không có nội dung này');
+  await header.getByRole('button', { name: 'Đăng xuất (mẫu)', exact: true }).click();
+  await expect(header).toContainText('Bạn đang xem với tư cách khách');
+  await page.screenshot({ path: 'test-results/task30-desktop.png' });
+});
+
+test('mobile disclosure supports keyboard escape, route closure and breakpoint focus without trapping', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/preview#public-layout');
+  const header = page.getByRole('banner');
+  const menu = header.getByRole('button', { name: 'Menu', exact: true });
+  const panel = page.locator('#public-navigation');
+  await expect(menu).toHaveAttribute('aria-controls', 'public-navigation');
+  await expect(menu).toHaveAttribute('aria-expanded', 'false');
+  await expect(panel).toBeHidden();
+  await menu.press('Enter');
+  await expect(menu).toHaveAttribute('aria-expanded', 'true');
+  await menu.press('Tab');
+  await expect(header.getByRole('link', { name: 'Trang chủ', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(header.getByRole('searchbox')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeFocused();
+  await expect(panel).toBeHidden();
+  await menu.press('Enter');
+  await header.getByRole('button', { name: 'Đăng nhập (mẫu)', exact: true }).click();
+  await header.getByRole('button', { name: 'Đăng xuất (mẫu)', exact: true }).press('Tab');
+  await expect(page.getByRole('textbox', { name: 'Tên hồ sơ mẫu' })).toBeFocused();
+  await header.screenshot({ path: 'test-results/task31-mobile.png' });
+  await header.getByRole('searchbox').focus();
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await expect(menu).toBeHidden();
+  await expect(header.getByRole('searchbox')).toBeFocused();
+  await page.setViewportSize({ width: 1023, height: 900 });
+  await expect(panel).toBeHidden();
+  await expect(menu).toBeFocused();
+  await menu.click();
+  await header.getByRole('link', { name: 'Trang chủ', exact: true }).press('Enter');
+  await expect(page).toHaveURL(/\/$/);
+  await expect(menu).toHaveAttribute('aria-expanded', 'false');
+  await expect(panel).toBeHidden();
+  await menu.click();
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: /Preview Fixtures/ })
+    .click();
+  await expect(page).toHaveURL(/\/preview$/);
+  await expect(panel).toBeHidden();
+  await page.goBack();
+  await expect(menu).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('shared public layout keeps landmarks, skip focus, footer placeholders and wide content accessible', async ({
+  page,
+}) => {
+  for (const route of ['/', '/preview']) {
+    await page.goto(route);
+    await expect(page.getByRole('banner')).toHaveCount(1);
+    await expect(page.getByRole('main')).toHaveCount(1);
+    await expect(page.getByRole('contentinfo')).toHaveCount(1);
+    await page.keyboard.press('Tab');
+    const skip = page.getByRole('link', { name: 'Bỏ qua điều hướng tới nội dung chính' });
+    await expect(skip).toBeFocused();
+    await skip.press('Enter');
+    await expect(page.getByRole('main')).toBeFocused();
+    const footer = page.getByRole('contentinfo');
+    await expect(footer.getByRole('link')).toHaveCount(1);
+    await expect(footer.locator('a[href="#"], a[target="_blank"]')).toHaveCount(0);
+    await expect(footer).toContainText('Facebook (mẫu)');
+    await expect(footer).toContainText('Chính sách bảo mật (mẫu)');
+    for (const width of [360, 768, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+    await footer.screenshot({ path: `test-results/task32-footer-${route === '/' ? 'home' : 'preview'}.png` });
+  }
+  const table = page.getByRole('region', { name: 'Bảng lịch chăm sóc mẫu có thể cuộn ngang' });
+  await page.setViewportSize({ width: 640, height: 900 });
+  // 200% text zoom plus a 1280px desktop viewport reduced to 640 CSS pixels.
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await table.focus();
+  await table.press('ArrowRight');
+  await expect.poll(() => table.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+  await expect(table).toBeFocused();
+  await page.getByRole('button', { name: 'Mô phỏng lỗi nội dung layout' }).click();
+  await expect(page.locator('#public-layout').getByRole('alert')).toContainText('Không tải được nội dung mẫu');
+  await page.getByRole('button', { name: 'Thử lại nội dung layout' }).click();
+  await expect(page.locator('#public-layout').getByRole('alert')).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/task33-zoom200.png' });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
+  await page.goto('/trang-khong-ton-tai');
+  await expect(page.getByRole('main')).toHaveCount(1);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Không tìm thấy trang');
+  await page.getByRole('link', { name: 'Về trang chủ', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Cùng bạn chăm boss');
+});
+
 test('breadcrumbs expose hierarchy, hide separators and keep public account admin links usable without JavaScript', async ({
   page,
   browser,

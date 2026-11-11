@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { PublicLayout } from '../components/PublicLayout';
 
 import './globals.css';
 
@@ -10,8 +11,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="vi">
-      <body>{children}</body>
+    <html lang="vi" data-scroll-behavior="smooth">
+      <body>
+        <PublicLayout>{children}</PublicLayout>
+      </body>
     </html>
   );
 }
