@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { Alert } from '../../components/Alert';
 import { Button } from '../../components/Button';
@@ -9,6 +10,9 @@ export function LayoutPlayground() {
   return (
     <section id="public-layout" className="shell-card" aria-labelledby="layout-title">
       <h2 id="layout-title">Public layout · Header, Menu và Footer</h2>
+      <p>
+        <Link href="/preview/auth">Xem Auth layout · sáu ngữ cảnh form mẫu</Link>
+      </p>
       <p>
         Thử Menu dưới 1024px, tìm “boss” hoặc từ không có kết quả; đăng nhập/đăng xuất mẫu và tên thành viên dài. Các
         trang chưa triển khai không xuất hiện trong menu.
