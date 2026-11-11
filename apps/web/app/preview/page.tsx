@@ -5,7 +5,7 @@ import { FixturePlayground } from './FixturePlayground';
 export const metadata: Metadata = {
   title: 'Preview dữ liệu ảo & kịch bản tương tác | OCungBoss',
   description:
-    'Trang kiểm thử cục bộ (/preview) cho bộ dữ liệu ảo, vai trò người dùng, trạng thái đọc/ghi và 74 mã ca P01–Q01 của OCungBoss.',
+    'Preview local cho CSS tokens Warm Earth, dữ liệu ảo, vai trò người dùng và 74 mã ca P01–Q01 của OCungBoss.',
   robots: {
     index: false,
     follow: false,
@@ -56,7 +56,112 @@ export default function PreviewPage() {
             </p>
           </section>
 
-          <FixturePlayground />
+          <section id="design-tokens" className="shell-card token-preview" aria-labelledby="tokens-title">
+            <h2 id="tokens-title">CSS tokens · Warm Earth</h2>
+            <p>
+              Màu, chữ và kích thước từ thiết kế đã chọn. Font dùng tên và fallback trên máy; trang này không tải font,
+              ảnh hoặc CDN bên ngoài.
+            </p>
+
+            <h3>Palette</h3>
+            <ul className="token-grid" aria-label="Palette Warm Earth">
+              {['primary', 'secondary', 'canvas', 'border', 'surface', 'heading', 'body'].map((token) => (
+                <li key={token}>
+                  <div className="token-swatch" style={{ backgroundColor: `var(--${token})` }} aria-hidden="true" />
+                  <code>--{token}</code>
+                </li>
+              ))}
+            </ul>
+
+            <h3>Typography</h3>
+            <ul className="token-grid" aria-label="Kiểu chữ">
+              {[
+                'display-lg-mobile',
+                'display-lg',
+                'headline-lg-mobile',
+                'headline-lg',
+                'headline-md',
+                'headline-sm',
+                'body-lg',
+                'body-md',
+                'body-sm',
+                'label-lg',
+                'label-md',
+                'label-sm',
+              ].map((role) => (
+                <li key={role}>
+                  <code>{role}</code>
+                  <p
+                    style={{
+                      fontFamily: role.startsWith('body') ? 'var(--font-body)' : 'var(--font-heading)',
+                      fontSize: `var(--font-size-${role})`,
+                      lineHeight: `var(--line-height-${role})`,
+                      fontWeight: `var(--font-weight-${role})`,
+                      letterSpacing: `var(--letter-spacing-${role}, normal)`,
+                    }}
+                  >
+                    Chăm boss mỗi ngày
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            <h3>Spacing</h3>
+            <ul className="token-grid" aria-label="Khoảng cách">
+              {[
+                'space-xs',
+                'space-sm',
+                'space-md',
+                'space-lg',
+                'space-xl',
+                'gutter',
+                'margin',
+                'margin-mobile',
+                'gutter-mobile',
+              ].map((token) => (
+                <li key={token}>
+                  <code>--{token}</code>
+                  <div className="token-spacing-sample" style={{ width: `var(--${token})` }} aria-hidden="true" />
+                </li>
+              ))}
+            </ul>
+
+            <h3>Radius</h3>
+            <ul className="token-grid" aria-label="Bo góc">
+              {['default', 'lg', 'xl', 'full'].map((radius) => (
+                <li key={radius}>
+                  <div
+                    className="token-radius-sample"
+                    style={{ borderRadius: `var(--radius-${radius})` }}
+                    aria-hidden="true"
+                  />
+                  <code>--radius-{radius}</code>
+                </li>
+              ))}
+            </ul>
+
+            <h3>Breakpoint</h3>
+            <ul className="token-grid" aria-label="Breakpoint">
+              {['sm · 640px', 'md · 768px', 'lg · 1024px', 'xl · 1280px'].map((breakpoint) => (
+                <li key={breakpoint}>
+                  <code>{breakpoint}</code>
+                </li>
+              ))}
+            </ul>
+
+            <h3>Chữ, placeholder và viền control</h3>
+            <div className="field-group">
+              <label htmlFor="token-example">Tên hồ sơ mẫu</label>
+              <input id="token-example" type="text" placeholder="Nhập tên boss để thử" autoComplete="off" />
+            </div>
+            <a className="btn-primary" href="#fixtures">
+              Thử dữ liệu ảo
+            </a>
+          </section>
+
+          <div id="fixtures">
+            <FixturePlayground />
+          </div>
         </div>
       </main>
 
