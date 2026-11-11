@@ -62,7 +62,7 @@ const textProbes = [
   '.editorconfig',
   '.gitattributes',
   '.env.example',
-  'apps/web/app/page.tsx',
+  'apps/web/app/(public)/page.tsx',
   'docs/README.md',
   'tools/check-encoding.cjs',
   'playwright.config.ts',
@@ -109,7 +109,7 @@ const filesToCheck = [
   'apps/web/lib/fixtures.ts',
   'apps/web/app/preview/FixturePlayground.tsx',
   'apps/web/app/preview/page.tsx',
-  'apps/web/app/page.tsx',
+  'apps/web/app/(public)/page.tsx',
   'apps/web/app/globals.css',
 ];
 function collect(dirRel) {

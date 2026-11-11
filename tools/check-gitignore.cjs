@@ -113,7 +113,7 @@ const mustTrack = [
   'apps/web/tsconfig.json',
   'apps/web/next.config.ts',
   'apps/web/app/layout.tsx',
-  'apps/web/app/page.tsx',
+  'apps/web/app/(public)/page.tsx',
   'apps/web/components/Button.tsx',
   'apps/web/lib/fixtures/pets.ts',
   'apps/api/package.json',

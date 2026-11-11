@@ -9,6 +9,7 @@
     "lint": "pnpm --filter @ocungboss/web lint",
     "test": "pnpm --filter @ocungboss/web test",
     "test:e2e": "playwright test",
+    "test:e2e:production": "pnpm build && playwright test --config playwright.production.config.ts",
     "secret:check": "node tools/check-frontend-secrets.cjs",
     "secret:check:test": "node tools/check-frontend-secrets.cjs --self-test",
     "dependency:check": "pnpm audit --prod=false --filter @ocungboss/web",

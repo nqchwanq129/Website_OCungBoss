@@ -2,84 +2,33 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Button } from './Button';
 import { Field } from './Field';
+import { ResponsiveNavigation } from './ResponsiveNavigation';
 
 const HOME_TITLE = 'Cùng bạn chăm boss bằng kiến thức đáng tin cậy';
 const MEMBER_NAME = 'Nguyễn Hoàng Minh Anh — người bạn của những chú chó và mèo';
 
 export function PublicHeader() {
   const pathname = usePathname();
-  const [openPath, setOpenPath] = useState<string | null>(null);
-  const [previousPath, setPreviousPath] = useState(pathname);
   const [member, setMember] = useState(false);
   const [query, setQuery] = useState('');
   const [searched, setSearched] = useState<string | null>(null);
-  const menu = useRef<HTMLButtonElement>(null);
-  const brand = useRef<HTMLAnchorElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
-  const open = openPath === pathname;
   const found = !!searched && HOME_TITLE.toLocaleLowerCase('vi').includes(searched.toLocaleLowerCase('vi'));
 
-  if (previousPath !== pathname) {
-    setPreviousPath(pathname);
-    setOpenPath(null);
-  }
-
-  useEffect(() => {
-    const desktop = matchMedia('(min-width: 1024px)');
-    function resize() {
-      setOpenPath(null);
-      if (!desktop.matches && panel.current?.contains(document.activeElement)) menu.current?.focus();
-      if (desktop.matches && document.activeElement === menu.current) brand.current?.focus();
-    }
-    desktop.addEventListener('change', resize);
-    return () => desktop.removeEventListener('change', resize);
-  }, []);
-
   return (
-    <header
-      className="shell-header public-header"
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' && open) {
-          event.preventDefault();
-          setOpenPath(null);
-          menu.current?.focus();
-        }
-      }}
-    >
+    <header className="shell-header public-header">
       <div className="shell-container public-header-inner">
-        <Link
-          ref={brand}
-          href="/"
-          className="brand-mark"
-          aria-label="OCungBoss — Trang chủ"
-          onClick={() => setOpenPath(null)}
-        >
+        <Link href="/" className="brand-mark" aria-label="OCungBoss — Trang chủ">
           <span className="brand-badge" aria-hidden="true">
             OB
           </span>
           <span>Ở Cùng Boss</span>
         </Link>
-        <Button
-          ref={menu}
-          variant="secondary"
-          className="public-menu"
-          aria-expanded={open}
-          aria-controls="public-navigation"
-          onClick={() => setOpenPath(open ? null : pathname)}
-        >
-          Menu
-        </Button>
-        <div ref={panel} id="public-navigation" className={`public-navigation${open ? ' is-open' : ''}`}>
+        <ResponsiveNavigation id="public-navigation" className="public-navigation">
           <nav aria-label="Điều hướng chính">
-            <Link
-              href="/"
-              className="nav-pill"
-              aria-current={pathname === '/' ? 'page' : undefined}
-              onClick={() => setOpenPath(null)}
-            >
+            <Link href="/" className="nav-pill" aria-current={pathname === '/' ? 'page' : undefined}>
               Trang chủ
             </Link>
           </nav>
@@ -109,11 +58,7 @@ export function PublicHeader() {
             {searched !== null && (
               <div className="header-search-result">
                 <p role="status">{found ? '1 kết quả mẫu.' : 'Không có kết quả mẫu.'}</p>
-                {found && (
-                  <Link href="/" onClick={() => setOpenPath(null)}>
-                    {HOME_TITLE}
-                  </Link>
-                )}
+                {found && <Link href="/">{HOME_TITLE}</Link>}
               </div>
             )}
           </div>
@@ -122,7 +67,7 @@ export function PublicHeader() {
             <Button onClick={() => setMember(!member)}>{member ? 'Đăng xuất (mẫu)' : 'Đăng nhập (mẫu)'}</Button>
             <small role="status">{member ? 'Thành viên mô phỏng' : 'Khách'} · Không xác thực tài khoản thật</small>
           </div>
-        </div>
+        </ResponsiveNavigation>
       </div>
     </header>
   );

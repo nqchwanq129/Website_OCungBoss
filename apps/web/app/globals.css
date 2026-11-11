@@ -285,6 +285,14 @@ h2 {
   flex-direction: column;
 }
 
+.recovery-panel h1 {
+  max-width: none;
+}
+.recovery-panel h1:focus {
+  outline: 3px solid var(--secondary);
+  outline-offset: 3px;
+}
+
 .skip-link {
   position: absolute;
   top: 0;
@@ -498,6 +506,104 @@ h2 {
   outline-offset: 3px;
 }
 
+.admin-shell {
+  min-height: 100vh;
+}
+.admin-sidebar {
+  padding: 1.25rem;
+  background: var(--heading);
+  color: var(--color-on-primary);
+  overflow-wrap: anywhere;
+}
+.admin-sidebar .brand-mark {
+  color: inherit;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+.admin-navigation {
+  display: none;
+}
+.admin-navigation.is-open {
+  display: block;
+}
+.admin-navigation nav {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+.admin-navigation a {
+  min-height: 44px;
+  padding: 0.75rem;
+  border-radius: var(--radius-default);
+  color: inherit;
+}
+.admin-navigation a[aria-current='page'] {
+  background: var(--body);
+  font-weight: 700;
+}
+.admin-sidebar :focus-visible {
+  outline: 3px solid var(--color-on-primary);
+  outline-offset: 3px;
+}
+.admin-workspace {
+  min-width: 0;
+}
+.admin-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.admin-search {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.admin-search p {
+  margin-bottom: 0;
+}
+.admin-controls {
+  display: flex;
+  flex: 1 1 18rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+}
+.admin-controls .field-group {
+  flex: 1 1 14rem;
+}
+.admin-main {
+  min-width: 0;
+  padding: 1.5rem;
+  overflow-wrap: anywhere;
+}
+.admin-main h1 {
+  max-width: none;
+}
+.admin-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+@media (min-width: 1024px) {
+  .admin-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 256px;
+    overflow-y: auto;
+  }
+  .admin-workspace {
+    margin-left: 256px;
+  }
+  .admin-navigation,
+  .admin-navigation.is-open {
+    display: block;
+  }
+}
+
 @media (min-width: 1024px) {
   .account-grid {
     grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
@@ -607,7 +713,7 @@ h2 {
   .public-header {
     font-size: var(--font-size-body-sm);
   }
-  .public-menu {
+  .responsive-menu {
     display: none;
   }
 

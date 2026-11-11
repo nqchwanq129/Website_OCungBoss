@@ -11,6 +11,12 @@ export function LayoutPlayground() {
     <section id="public-layout" className="shell-card" aria-labelledby="layout-title">
       <h2 id="layout-title">Public layout · Header, Menu và Footer</h2>
       <p>
+        <Link href="/preview/error">Xem lỗi render và recovery mẫu</Link>
+      </p>
+      <p>
+        <Link href="/preview/admin">Xem Admin layout · capability và menu mẫu</Link>
+      </p>
+      <p>
         <Link href="/preview/auth">Xem Auth layout · sáu ngữ cảnh form mẫu</Link>
       </p>
       <p>
