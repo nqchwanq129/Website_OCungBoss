@@ -1,5 +1,76 @@
 import { expect, test } from '@playwright/test';
 
+test('confirmation preserves context, traps focus and prevents duplicate destructive actions', async ({ page }) => {
+  await page.goto('/preview#confirm-dialog');
+  const preview = page.locator('#confirm-dialog');
+  const trigger = page.locator('#confirm-trigger');
+  const dialog = page.getByRole('dialog', { name: 'Xóa ghi chú này?' });
+  const cancel = dialog.getByRole('button', { name: 'Hủy', exact: true });
+  const confirm = dialog.getByRole('button', { name: 'Xác nhận xóa', exact: true });
+
+  await trigger.focus();
+  await trigger.press('Enter');
+  await expect(cancel).toBeFocused();
+  await expect(dialog).toHaveAccessibleDescription(/Bạn sắp xóa.*Ghi chú chăm sóc Bơ/);
+  await cancel.press('Tab');
+  await expect(confirm).toBeFocused();
+  await confirm.press('Tab');
+  await expect.poll(() => dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+  await cancel.focus();
+  await cancel.press('Shift+Tab');
+  await expect.poll(() => dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expect(preview).toContainText('Lần thử mô phỏng: 0');
+
+  await trigger.click();
+  await cancel.click();
+  await expect(trigger).toBeFocused();
+  await expect(preview).toContainText('Ghi chú mẫu vẫn được giữ.');
+  await expect(preview).toContainText('Lần thử mô phỏng: 0');
+
+  await preview.getByRole('checkbox', { name: 'Mô phỏng lỗi lần thử đầu' }).check();
+  await trigger.click();
+  for (const width of [1280, 360, 320]) {
+    await page.setViewportSize({ width, height: width === 320 ? 450 : 800 });
+    const bounds = await dialog.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+    expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  }
+  await page.mouse.click(1, 1);
+  await expect(dialog).toBeVisible();
+  await confirm.click();
+  await expect(dialog.getByRole('button', { name: 'Đang xử lý…', exact: true })).toBeDisabled();
+  await expect(cancel).toHaveAttribute('aria-disabled', 'true');
+  await cancel.focus();
+  await cancel.press('Tab');
+  await expect(cancel).toBeFocused();
+  await cancel.click({ force: true });
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+  await expect(preview).toContainText('Lần thử mô phỏng: 1');
+  await expect(dialog.getByRole('alert')).toContainText('Nội dung vẫn được giữ nguyên.');
+  await expect(dialog).toContainText('Ghi chú chăm sóc Bơ');
+  await expect(cancel).toBeFocused();
+  await expect(preview.locator('.confirm-note')).toHaveCount(1);
+
+  await page.setViewportSize({ width: 360, height: 800 });
+  await dialog.screenshot({ path: 'test-results/task27-confirm-dialog-mobile.png' });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await dialog.screenshot({ path: 'test-results/task27-confirm-dialog-desktop.png' });
+  await confirm.dblclick();
+  await expect(preview).toContainText('Lần thử mô phỏng: 2');
+  await expect(dialog).toHaveCount(0);
+  await expect(preview).toContainText('Đã xóa ghi chú mẫu.');
+  await expect(preview.locator('.confirm-note')).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await expect(preview.locator('.confirm-note')).toHaveCount(1);
+});
+
 test('opens the homepage and navigates to the fixture preview', async ({ page }) => {
   await page.goto('/');
 

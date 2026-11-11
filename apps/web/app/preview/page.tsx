@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Field } from '../../components/Field';
 import { ButtonPlayground } from './ButtonPlayground';
 import { CardPlayground } from './CardPlayground';
+import { ConfirmDialogPlayground } from './ConfirmDialogPlayground';
 import { AlertPlayground } from './AlertPlayground';
 import { FieldPlayground } from './FieldPlayground';
 import { FixturePlayground } from './FixturePlayground';
@@ -175,6 +176,7 @@ export default function PreviewPage() {
           <CardPlayground />
           <AlertPlayground />
           <LoadingPlayground />
+          <ConfirmDialogPlayground />
 
           <div id="fixtures">
             <FixturePlayground />
