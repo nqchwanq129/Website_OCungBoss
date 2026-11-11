@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { Field } from '../../components/Field';
 import { LoadingState } from '../../components/LoadingState';
 import { ButtonPlayground } from './ButtonPlayground';
+import { BreadcrumbPlayground } from './BreadcrumbPlayground';
 import { CardPlayground } from './CardPlayground';
 import { ConfirmDialogPlayground } from './ConfirmDialogPlayground';
 import { AlertPlayground } from './AlertPlayground';
@@ -180,6 +181,7 @@ export default function PreviewPage() {
           <AlertPlayground />
           <LoadingPlayground />
           <ConfirmDialogPlayground />
+          <BreadcrumbPlayground />
           <Suspense
             fallback={<LoadingState regionLabel="Đang mở danh sách ca mẫu" statusLabel="Đang đọc bộ lọc mẫu." />}
           >

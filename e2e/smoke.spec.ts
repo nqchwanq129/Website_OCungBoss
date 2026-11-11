@@ -1,5 +1,67 @@
 import { expect, test } from '@playwright/test';
 
+test('breadcrumbs expose hierarchy, hide separators and keep public account admin links usable without JavaScript', async ({
+  page,
+  browser,
+}) => {
+  await page.goto('/preview#breadcrumbs');
+  const examples = page.locator('#breadcrumbs');
+  const names = ['Đường dẫn công khai mẫu', 'Đường dẫn tài khoản mẫu', 'Đường dẫn quản trị mẫu'];
+  for (const [index, name] of names.entries()) {
+    const nav = examples.getByRole('navigation', { name, exact: true });
+    await expect(nav.getByRole('list')).toHaveJSProperty('tagName', 'OL');
+    await expect(nav.getByRole('listitem')).toHaveCount(3);
+    await expect(nav.getByRole('link')).toHaveCount(2);
+    const current = nav.locator('[aria-current="page"]');
+    await expect(current).toHaveCount(1);
+    expect(await current.evaluate((element) => element.closest('a'))).toBeNull();
+    await expect(nav.locator('li').last()).toContainText(await current.innerText());
+    await expect(nav.locator('.breadcrumb-separator[aria-hidden="true"]')).toHaveCount(2);
+    for (const link of await nav.getByRole('link').all()) {
+      const href = await link.getAttribute('href');
+      const target = new URL(href!, page.url());
+      expect(target.origin).toBe(new URL(page.url()).origin);
+      expect(['/', '/preview']).toContain(target.pathname);
+      if (target.hash) await expect(page.locator(target.hash)).toHaveCount(1);
+    }
+    await nav.getByRole('link').last().press('Tab');
+    expect(await nav.locator('[aria-current="page"]').evaluate((element) => element === document.activeElement)).toBe(
+      false,
+    );
+    await nav.getByRole('link').last().press('Enter');
+    await expect(page).toHaveURL(index === 0 ? /\/preview#cards$/ : /\/preview#fixtures$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/preview#breadcrumbs$/);
+  }
+  for (const width of [360, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await examples.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    for (const nav of await examples.getByRole('navigation').all()) {
+      expect(await nav.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    }
+    await examples.screenshot({ path: `test-results/task29-breadcrumbs-${width}.png` });
+  }
+
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const ssr = await context.newPage();
+    await ssr.goto('http://127.0.0.1:3000/preview#breadcrumbs');
+    for (const name of names) {
+      const nav = ssr.getByRole('navigation', { name, exact: true });
+      await expect(nav).toBeVisible();
+      await expect(nav.locator('[aria-current="page"]')).toHaveCount(1);
+    }
+    await ssr
+      .getByRole('navigation', { name: names[0], exact: true })
+      .getByRole('link', { name: 'Trang chủ' })
+      .press('Enter');
+    await expect(ssr.getByRole('heading', { level: 1 })).toContainText('Cùng bạn chăm boss');
+  } finally {
+    await context.close();
+  }
+});
+
 test('pagination keeps filters and repeated query values through links, forms and browser history', async ({
   page,
 }) => {
